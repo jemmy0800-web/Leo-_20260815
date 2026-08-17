@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>單字記憶遊戲平台 - Rainbow Time 2020.4</title>
+  <!-- 引入開源 OCR 圖片辨識套件與五彩紙屑特效套件 -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --bg-gradient: linear-gradient(135deg, #e0f2fe 0%, #f0f4f8 50%, #eef2ff 100%);
+      --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: var(--bg-gradient); 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      min-height: 100vh; 
+      padding: 15px 12px; 
+    }
+    
+    .nav-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; justify-content: center; }
+    .nav-btn { 
+      padding: 8px 14px; 
+      border: none; 
+      background: #ffffff; 
+      color: #64748b;
+      font-weight: bold; 
+      cursor: pointer; 
+      border-radius: 10px; 
+      font-size: 0.88rem; 
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .nav-btn:hover { transform: translateY(-2px); color: var(--primary); }
+    .nav-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35); }
+    
+    .container { width: 100%; max-width: 520px; display: flex; flex-direction: column; align-items: center; }
+    
+    .top-header-bar {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      margin-bottom: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .bank-selector-bar { 
+      flex: 1;
+      min-width: 180px;
+      background: #ffffff; 
+      padding: 6px 12px; 
+      border-radius: 12px; 
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04); 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 6px; 
+    }
+    .bank-selector-label { font-size: 0.82rem; font-weight: bold; color: #334155; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; }
+    .bank-select { 
+      flex: 1; 
+      padding: 5px 8px; 
+      border-radius: 8px; 
+      border: 1px solid #e2e8f0; 
+      font-size: 0.85rem; 
+      font-weight: bold; 
+      color: #1e3a8a; 
+      background: #f8fafc; 
+      outline: none; 
+      cursor: pointer;
+      transition: border 0.2s;
+    }
+    .bank-select:focus { border-color: var(--primary); }
+
+    .music-btn { 
+      border: none; 
+      padding: 5px 10px; 
+      border-radius: 16px; 
+      font-size: 0.78rem; 
+      font-weight: bold; 
+      cursor: pointer; 
+      transition: all 0.2s; 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+      display: inline-flex; 
+      align-items: center; 
+      gap: 3px; 
+      background: #8b5cf6; 
+      color: white; 
+      white-space: nowrap;
+    }
+    .music-btn.off { background: #94a3b8; }
+
+    .level-header-badge { 
+      background: linear-gradient(135deg, #f59e0b, #d97706); 
+      color: white; 
+      padding: 5px 10px; 
+      border-radius: 16px; 
+      font-weight: bold; 
+      font-size: 0.78rem; 
+      display: inline-flex; 
+      align-items: center; 
+      gap: 3px; 
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25); 
+      transition: transform 0.2s; 
+      white-space: nowrap;
+    }
+    .level-header-badge:hover { transform: scale(1.03); }
+
+    .mode-controls { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 10px; gap: 8px; }
+    .order-btn, .export-btn { border: none; padding: 6px 12px; border-radius: 16px; font-size: 0.82rem; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: inline-flex; align-items: center; gap: 3px; }
+    .order-btn { background: #ffffff; color: #475569; border: 1px solid #cbd5e1; }
+    .export-btn { background: var(--success); color: white; }
+    .export-btn:hover { background: #059669; }
+
+    .range-selector { display: flex; gap: 4px; justify-content: center; margin-bottom: 12px; background: rgba(241, 245, 249, 0.8); padding: 4px; border-radius: 10px; flex-wrap: wrap; width: 100%; }
+    .range-btn { flex: 1; min-width: 95px; padding: 6px 4px; border: none; background: transparent; border-radius: 7px; font-size: 0.78rem; font-weight: bold; color: #64748b; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+    .range-btn.active { background: #ffffff; color: var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+
+    .flashcard-box { width: 100%; height: 260px; perspective: 1000px; cursor: pointer; margin-bottom: 16px; }
+    .flashcard { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 18px; }
+    .flashcard.flipped { transform: rotateY(180deg); }
+    .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 18px; padding: 20px; text-align: center; box-shadow: var(--card-shadow); }
+    .card-front { background: #ffffff; color: #1e293b; border: 1.5px solid #f1f5f9; }
+    .card-back { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; transform: rotateY(180deg); }
+    .word { font-size: 1.85rem; font-weight: 800; margin-bottom: 6px; letter-spacing: 0.5px; }
+    .pos-tag { font-size: 0.95rem; color: #64748b; font-weight: normal; margin-left: 6px; }
+    .card-back .pos-tag { color: #cbd5e1; }
+    .hint { font-size: 0.82rem; color: #94a3b8; margin-top: 12px; display: inline-flex; align-items: center; gap: 4px; }
+    .card-back .hint { color: #e2e8f0; }
+    
+    .audio-btn { background: rgba(255, 255, 255, 0.22); border: 1px solid rgba(255, 255, 255, 0.4); color: white; padding: 6px 14px; border-radius: 18px; font-size: 0.85rem; cursor: pointer; margin-top: 10px; display: flex; align-items: center; gap: 5px; transition: background 0.2s; backdrop-filter: blur(4px); }
+    .audio-btn:hover { background: rgba(255, 255, 255, 0.35); }
+
+    .actions { display: flex; gap: 8px; width: 100%; margin-bottom: 20px; }
+    .btn { flex: 1; padding: 11px; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 3px 8px rgba(0,0,0,0.05); display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+    .btn:hover { transform: translateY(-1px); opacity: 0.95; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-prev { background: #64748b; color: white; }
+    .btn-wrong { background: var(--danger); color: white; }
+    .btn-right { background: var(--success); color: white; }
+    .btn-next { background: var(--primary); color: white; width: 100%; margin-top: 12px; }
+    
+    .unfamiliar-badge { background: #fee2e2; color: #991b1b; padding: 5px 12px; border-radius: 16px; font-size: 0.8rem; font-weight: bold; display: inline-flex; align-items: center; gap: 3px; }
+
+    .unfamiliar-list-box { width: 100%; background: white; border-radius: 14px; padding: 15px; box-shadow: var(--card-shadow); text-align: left; }
+    .unfamiliar-list-title { font-size: 0.95rem; font-weight: bold; color: #991b1b; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #fee2e2; padding-bottom: 6px; }
+    .unfamiliar-items { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .unfamiliar-item { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 8px 12px; border-radius: 8px; font-size: 0.88rem; border: 1px solid #e2e8f0; }
+    .unfamiliar-item .en-word { font-weight: bold; color: #1e3a8a; }
+    .unfamiliar-item .zh-word { color: #475569; }
+
+    .card-box { background: white; width: 100%; border-radius: 18px; padding: 20px; box-shadow: var(--card-shadow); text-align: center; }
+    .quiz-hint { font-size: 1.05rem; color: #64748b; letter-spacing: 2px; margin-bottom: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; }
+    .input-group { display: flex; gap: 8px; margin-top: 16px; }
+    .quiz-input { flex: 1; padding: 10px 14px; border: 2px solid #cbd5e1; border-radius: 9px; font-size: 1rem; outline: none; transition: border 0.2s; }
+    .quiz-input:focus { border-color: var(--primary); }
+    .quiz-submit { padding: 10px 18px; background: var(--primary); color: white; border: none; border-radius: 9px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
+    .feedback { margin-top: 12px; font-size: 1.05rem; font-weight: bold; min-height: 26px; }
+    .feedback.correct { color: var(--success); }
+    .feedback.wrong { color: var(--danger); }
+    
+    .result-box { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .trophy-icon { font-size: 3.5rem; animation: bounce 1s infinite alternate; }
+    @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+    .score-circle { width: 110px; height: 110px; border-radius: 50%; background: #eff6ff; border: 5px solid var(--primary); display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 4px 0; }
+    .score-num { font-size: 2rem; font-weight: bold; color: #1e3a8a; }
+    .score-total { font-size: 0.8rem; color: #64748b; }
+    .accuracy-rate { font-size: 1rem; font-weight: bold; color: #334155; }
+    .result-msg { font-size: 0.92rem; font-weight: bold; color: #1e3a8a; line-height: 1.4; padding: 8px 12px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd; width: 100%; }
+    .result-details { text-align: left; width: 100%; max-height: 160px; overflow-y: auto; background: #f8fafc; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.88rem; }
+    .result-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #e2e8f0; }
+
+    .level-hero { 
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); 
+      color: white; 
+      padding: 20px 16px; 
+      border-radius: 18px; 
+      margin-bottom: 16px; 
+      width: 100%; 
+      text-align: center; 
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.22);
+    }
+    .level-avatar { 
+      font-size: 4rem; 
+      margin: 6px 0; 
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+      animation: floatHero 3.2s ease-in-out infinite; 
+    }
+    @keyframes floatHero { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+    .level-title { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.5px; }
+    .level-sub { font-size: 0.88rem; opacity: 0.9; margin-top: 2px; }
+
+    .progress-bar-bg { background: rgba(255, 255, 255, 0.25); height: 12px; border-radius: 10px; overflow: hidden; margin: 12px 0 6px 0; width: 100%; position: relative; }
+    .progress-bar-fill { 
+      background: linear-gradient(90deg, #10b981, #34d399, #10b981); 
+      background-size: 200% 100%;
+      height: 100%; width: 0%; transition: width 0.5s ease-in-out; 
+      animation: gradientMove 2s linear infinite;
+    }
+    @keyframes gradientMove { 0% { background-position: 0% 0%; } 100% { background-position: 200% 0%; } }
+    .progress-text { font-size: 0.82rem; opacity: 0.95; font-weight: 600; }
+
+    .pokedex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; width: 100%; margin-top: 14px; }
+    .poke-card { 
+      background: #f8fafc; 
+      border: 1.5px solid #e2e8f0; 
+      border-radius: 14px; 
+      padding: 10px 6px; 
+      text-align: center; 
+      opacity: 0.45; 
+      filter: grayscale(100%); 
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
+    .poke-card.unlocked { 
+      opacity: 1; 
+      filter: grayscale(0%); 
+      background: #ffffff; 
+      border-color: #3b82f6; 
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12); 
+    }
+    .poke-card.current {
+      border-color: #f59e0b;
+      background: #ffffef;
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3), 0 4px 12px rgba(245, 158, 11, 0.18);
+    }
+
+    .poke-icon { font-size: 2rem; }
+    .poke-lv { font-size: 0.72rem; font-weight: 800; color: #3b82f6; margin-top: 2px; }
+    .poke-name { font-size: 0.82rem; font-weight: bold; color: #1e293b; margin-top: 2px; }
+
+    .import-area { text-align: left; }
+    .import-area textarea { width: 100%; height: 150px; padding: 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; margin-top: 8px; outline: none; }
+    .import-area textarea:focus { border-color: #8b5cf6; }
+    .import-guide { font-size: 0.82rem; color: #64748b; margin-top: 6px; line-height: 1.4; }
+    .ocr-status { margin-top: 8px; font-size: 0.88rem; font-weight: bold; color: #0284c7; }
+    .db-count-badge { background: #e0e7ff; color: #3730a3; padding: 5px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; display: inline-block; }
+
+    #toast-box { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(30, 41, 59, 0.95); color: white; padding: 8px 18px; border-radius: 18px; font-size: 0.88rem; font-weight: bold; box-shadow: 0 4px 14px rgba(0,0,0,0.25); pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 999; }
+    #toast-box.show { opacity: 1; }
+
+    .status { color: #64748b; font-size: 0.9rem; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- Toast 訊息欄 -->
+  <div id="toast-box"></div>
+
+  <div class="nav-tabs">
+    <button class="nav-btn active" id="tab-flashcard" onclick="switchMode('flashcard')">📇 閃卡複習</button>
+    <button class="nav-btn" id="tab-quiz" onclick="switchMode('quiz')">✍️ 拼字測驗</button>
+    <button class="nav-btn" id="tab-level" onclick="switchMode('level')">🏆 升級紀錄</button>
+    <button class="nav-btn" id="tab-import" onclick="switchMode('import')">📥 追加題庫</button>
+  </div>
+
+  <div class="container">
+
+    <!-- 全局題庫選擇器與頂部微型等級/音樂欄 -->
+    <div class="top-header-bar">
+      <div class="bank-selector-bar">
+        <span class="bank-selector-label">📂 當前題庫：</span>
+        <select id="dataset-select" class="bank-select" onchange="onBankSelectionChange(this.value)">
+          <!-- 動態產生選項 -->
+        </select>
+      </div>
+      <button class="music-btn off" id="bgm-toggle-btn" onclick="toggleBGM()" title="切換背景音樂">
+        🔇 音樂：關
+      </button>
+      <div id="top-level-badge" class="level-header-badge" onclick="switchMode('level')" style="cursor: pointer;" title="點擊查看升級記錄">
+        ⚡ Lv.1 寶可夢蛋
+      </div>
+    </div>
+
+    <!-- 1. 閃卡模式 -->
+    <div id="flashcard-section" style="width: 100%; text-align: center;">
+      <div class="mode-controls">
+        <div class="unfamiliar-badge" id="unfamiliar-count">📌 不熟單字：0 個</div>
+        <button class="order-btn" id="order-toggle-btn" onclick="toggleOrderMode()">🔀 隨機排序</button>
+      </div>
+
+      <!-- 閃卡複習範圍切換選單 -->
+      <div class="range-selector">
+        <button class="range-btn active" id="fc-range-all-btn" onclick="setFlashcardRange('all')">📚 當前題庫全部</button>
+        <button class="range-btn" id="fc-range-unpassed-btn" onclick="setFlashcardRange('unpassed')">⏳ 尚未通過單字</button>
+        <button class="range-btn" id="fc-range-wrong-btn" onclick="setFlashcardRange('wrong')">❌ 曾經出錯單字</button>
+      </div>
+
+      <div class="status" id="fc-status" style="margin-bottom: 8px;">剩餘單字：0</div>
+
+      <div class="flashcard-box" onclick="flipCard()">
+        <div class="flashcard" id="flashcard">
+          <div class="card-front">
+            <div class="word" id="fc-meaning">載入中...</div>
+            <div class="hint">💡 想一想英文怎麼拼，點擊翻面確認答案</div>
+          </div>
+          <div class="card-back">
+            <div class="word" id="fc-word">Loading...</div>
+            <button class="audio-btn" onclick="speakCurrentWord(event)">🔊 重複發音</button>
+            <div class="hint">👇 點擊下方按鈕紀錄熟悉度</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-prev" id="btn-prev-card" onclick="prevCard()">⏮️ 回上一張</button>
+        <button class="btn btn-wrong" onclick="markCard(false)">❌ 還不熟 (錯題集)</button>
+        <button class="btn btn-right" onclick="markCard(true)">⭕ 已記住</button>
+      </div>
+
+      <div class="unfamiliar-list-box">
+        <div class="unfamiliar-list-title">
+          <span>📌 當前題庫不熟 / 錯題清單</span>
+          <span style="font-size: 0.78rem; font-weight: normal; color: #64748b;">⚡ 即時更新</span>
+        </div>
+        <div class="unfamiliar-items" id="unfamiliar-items-container">
+          <div style="color: #94a3b8; text-align: center; font-size: 0.85rem; padding: 8px;">目前尚無標記不熟的單詞</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 進階拼字填空測驗模式 -->
+    <div id="quiz-section" class="card-box hidden">
+      <div class="quiz-toolbar">
+        <div class="unfamiliar-badge" id="quiz-unfamiliar-count">📌 累積錯題：0 個</div>
+        <button class="export-btn" onclick="exportQuizErrorsToWord()">📄 匯出錯題 Word</button>
+      </div>
+
+      <div class="range-selector">
+        <button class="range-btn active" id="range-unpassed-btn" onclick="setQuizRange('unpassed')">⏳ 尚未通過單字</button>
+        <button class="range-btn" id="range-wrong-btn" onclick="setQuizRange('wrong')">❌ 曾經出錯單字</button>
+        <button class="range-btn" id="range-15-btn" onclick="setQuizRange('rand15')">🎲 隨機 15 題</button>
+        <button class="range-btn" id="range-all-btn" onclick="setQuizRange('all')">📚 題庫全部</button>
+      </div>
+
+      <div id="quiz-active-view">
+        <div class="status" id="quiz-status" style="margin-bottom: 8px;">🎯 題目 1 / 10</div>
+        <div class="word" id="quiz-meaning" style="color: #1e293b; margin: 8px 0;">中文意思</div>
+        <div class="quiz-hint" id="quiz-blank">💡 _ _ _ _ _</div>
+        
+        <form id="quiz-form" onsubmit="handleQuizSubmit(event)">
+          <div class="input-group">
+            <input type="text" id="quiz-input" class="quiz-input" placeholder="⌨️ 請輸入英文單字..." autocomplete="off">
+            <button type="submit" id="submit-btn" class="quiz-submit">🚀 送出</button>
+          </div>
+        </form>
+
+        <div class="feedback" id="quiz-feedback"></div>
+        <button class="btn btn-next hidden" id="next-q-btn" onclick="nextQuestion()">➡️ 下一題 (按下 Enter)</button>
+      </div>
+
+      <div id="quiz-result-view" class="result-box hidden">
+        <div class="trophy-icon" id="res-trophy">🏆</div>
+        <h2 id="res-title" style="color: #1e3a8a;">🎉 測驗完成！太棒了！</h2>
+        <div class="score-circle">
+          <span class="score-num" id="res-score">0</span>
+          <span class="score-total" id="res-total">/ 0 題</span>
+        </div>
+        <div class="accuracy-rate" id="res-accuracy">正確率：0%</div>
+        <div class="result-msg" id="res-msg">鼓勵評語載入中...</div>
+        
+        <div style="width: 100%; text-align: left; font-weight: bold; margin-top: 5px; color: #475569;">答題明細：</div>
+        <div class="result-details" id="res-details"></div>
+
+        <div style="display: flex; gap: 8px; width: 100%;">
+          <button class="btn btn-right" style="margin-top: 10px;" onclick="exportQuizErrorsToWord()">📄 匯出錯題 Word</button>
+          <button class="btn btn-next" style="margin-top: 10px;" onclick="switchMode('flashcard')">📇 返回閃卡繼續練習</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 升級紀錄頁面 (每 20 題升一級) -->
+    <div id="level-section" class="card-box hidden" style="text-align: left;">
+      <div class="level-hero">
+        <div class="level-avatar" id="hero-avatar">🥚</div>
+        <div class="level-title" id="hero-title">Lv.1 寶可夢蛋</div>
+        <div class="level-sub" id="hero-sub">單字初生學徒</div>
+        
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="hero-progress-fill"></div>
+        </div>
+        <div class="progress-text" id="hero-progress-text">距離下一級：還需掌握 20 個單字</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h4 style="color: #1e3a8a; font-size: 0.98rem;">🐾 寶可夢成長升級圖鑑 (每 20 題升一級)</h4>
+        <span style="font-size: 0.82rem; color: #64748b; font-weight: bold;" id="total-mastered-badge">總累積已掌握：0 題</span>
+      </div>
+
+      <div class="pokedex-grid" id="pokedex-grid">
+        <!-- JS 動態帶入 Lv 1 - Lv 25 -->
+      </div>
+
+      <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 20px 0 14px 0;">
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h4 style="color: #1e3a8a;">💾 進度備份與轉移</h4>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="btn" style="background: #10b981; color: white;" onclick="exportBackupJSON()">💾 匯出進度檔 (.json)</button>
+        <button class="btn" style="background: #8b5cf6; color: white;" onclick="document.getElementById('backup-file-input').click()">📂 還原進度檔</button>
+        <input type="file" id="backup-file-input" accept=".json" class="hidden" onchange="importBackupJSON(event)">
+      </div>
+    </div>
+
+    <!-- 4. 匯入與累積題庫頁面 -->
+    <div id="import-section" class="card-box import-area hidden">
+      <h3 style="color: #1e3a8a; margin-bottom: 5px;">📥 追加新單字與題庫管理</h3>
+      <div class="db-count-badge" id="db-count-badge">📚 目前庫存總數：0 個單字</div>
+      
+      <div style="margin-bottom: 18px; background: #f0f9ff; padding: 12px; border-radius: 10px; border: 1px dashed #0284c7;">
+        <label style="font-weight: bold; color: #0369a1; font-size: 0.9rem;">📷 方法一：上傳圖片掃描並追加</label>
+        <input type="file" id="image-input" accept="image/*" style="margin-top: 6px; width: 100%;" onchange="processImageOCR(event)">
+        <div class="ocr-status" id="ocr-status"></div>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label style="font-weight: bold; color: #334155; font-size: 0.9rem;">方法二：文字預覽與追加</label>
+        <textarea id="import-text" placeholder="辨識或貼上的內容會追加在現有題庫後方：
+case, n., 案件
+wonder, v., 想知道
+sandwich, n., 三明治"></textarea>
+        <div class="import-guide">💡 格式為：`英文, 詞性, 中文` 或 `英文, 中文`。系統會自動跳過重複單字。</div>
+        <button class="btn" style="background: #8b5cf6; color: white; width: 100%; margin-top: 8px;" onclick="importFromText()">➕ 確定追加到選取題庫</button>
+      </div>
+
+      <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 18px 0 14px 0;">
+
+      <h4 style="color: #334155; margin-bottom: 8px;">⚙️ 題庫維護與重置</h4>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button class="btn" style="background: #ef4444; color: white;" onclick="clearSelectedDataset()">🗑️ 清空目前選取題庫</button>
+        <button class="btn" style="background: #64748b; color: white;" onclick="resetSelectedDataset()">🔄 恢復 Rainbow Time 2020.4 預設題庫</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const WORDS_PER_LEVEL = 20; // 20 題升一級
+
+    // 題庫 1：Rainbow Time 2020.4 Unit 1 (19 題)
+    const datasetRainbowUnit1 = [
+      { en: "breakfast", pos: "n.", zh: "早餐", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "juicy", pos: "adj.", zh: "多汁的", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "ear", pos: "n.", zh: "穗", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "corn", pos: "n.", zh: "玉米", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "tasty", pos: "adj.", zh: "美味的", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "wander", pos: "v.", zh: "閒逛", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "barn", pos: "n.", zh: "穀倉", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "munch", pos: "v.", zh: "吃", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "shiny", pos: "adj.", zh: "閃閃發亮的", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "snack", pos: "n.", zh: "點心", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "tummy", pos: "n.", zh: "肚子", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "wake up", pos: "phr.", zh: "起床", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "feeling", pos: "v.", zh: "感覺", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "starving", pos: "adj.", zh: "餓壞了的", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "anything", pos: "pro.", zh: "任何東西", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "hungry", pos: "adj.", zh: "飢餓的", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "delicious", pos: "adj.", zh: "美味的", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "hurt", pos: "v.", zh: "弄傷、弄痛", importDate: "Rainbow Time 2020.4 Unit 1" },
+      { en: "terrible", pos: "adj.", zh: "糟糕的、可怕的", importDate: "Rainbow Time 2020.4 Unit 1" }
+    ];
+
+    // 題庫 2：Rainbow Time 2020.4 Unit 2 (13 題)
+    const datasetRainbowUnit2 = [
+      { en: "gross", pos: "adj.", zh: "噁心的", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "flip", pos: "v.", zh: "翻面", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "pickled", pos: "adj.", zh: "醃漬的", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "pepper", pos: "n.", zh: "椒", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "lick", pos: "v.", zh: "舔", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "color", pos: "n.", zh: "顏色", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "double", pos: "adj.", zh: "雙倍", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "cheesy", pos: "adj.", zh: "含大量乳酪的", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "favorite", pos: "adj.", zh: "最愛的", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "place", pos: "n.", zh: "地方", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "hot", pos: "adj.", zh: "辣的", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "cheese", pos: "n.", zh: "乳酪、起士", importDate: "Rainbow Time 2020.4 Unit 2" },
+      { en: "boring", pos: "adj.", zh: "無聊的", importDate: "Rainbow Time 2020.4 Unit 2" }
+    ];
+
+    // 題庫 3：Rainbow Time 2020.4 Unit 3 (13 題)
+    const datasetRainbowUnit3 = [
+      { en: "case", pos: "n.", zh: "案件", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "detective", pos: "n.", zh: "偵探", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "clue", pos: "n.", zh: "線索", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "wonder", pos: "v.", zh: "想知道", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "rip", pos: "v.", zh: "撕、扯破", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "squirrel", pos: "n.", zh: "松鼠", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "solve", pos: "v.", zh: "解答、解開", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "miss", pos: "v.", zh: "失蹤、錯過", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "upset", pos: "adj.", zh: "沮喪的、不開心的", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "zipper", pos: "n.", zh: "拉鍊", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "recess", pos: "n.", zh: "下課時間", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "classroom", pos: "n.", zh: "教室", importDate: "Rainbow Time 2020.4 Unit 3" },
+      { en: "sandwich", pos: "n.", zh: "三明治", importDate: "Rainbow Time 2020.4 Unit 3" }
+    ];
+
+    // 題庫 4：Rainbow Time 2020.4 Unit 4 (14 題)
+    const datasetRainbowUnit4 = [
+      { en: "dumpling", pos: "n.", zh: "水餃", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "night market", pos: "n.", zh: "夜市", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "knight", pos: "n.", zh: "護衛、武士", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "march", pos: "v.", zh: "齊步走", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "path", pos: "n.", zh: "通道", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "snatch", pos: "v.", zh: "奪取", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "reusable", pos: "adj.", zh: "可重複使用的", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "bend down", pos: "phr.", zh: "彎腰", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "lift", pos: "v.", zh: "舉起", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "food stand", pos: "n.", zh: "小吃攤", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "plastic", pos: "adj.", zh: "塑膠製的", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "bag", pos: "n.", zh: "袋子", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "knee", pos: "n.", zh: "膝蓋", importDate: "Rainbow Time 2020.4 Unit 4" },
+      { en: "recycle", pos: "v.", zh: "回收", importDate: "Rainbow Time 2020.4 Unit 4" }
+    ];
+
+    // 寶可夢等級 (Lv 1 到 Lv 25)
+    const pokeLevels = [
+      { lv: 1, name: "寶可夢蛋", icon: "🥚", title: "初生學徒" },
+      { lv: 2, name: "皮丘 Pichu", icon: "⚡", title: "單字萌芽者" },
+      { lv: 3, name: "皮卡丘 Pikachu", icon: "⚡", title: "單字冒險家" },
+      { lv: 4, name: "雷丘 Raichu", icon: "⚡", title: "雷霆單字大師" },
+      { lv: 5, name: "小火龍 Charmander", icon: "🔥", title: "星火探險者" },
+      { lv: 6, name: "噴火龍 Charizard", icon: "🔥", title: "烈焰單字狂熱者" },
+      { lv: 7, name: "傑尼龜 Squirtle", icon: "💧", title: "水流潛能者" },
+      { lv: 8, name: "水箭龜 Blastoise", icon: "💧", title: "深海單字王者" },
+      { lv: 9, name: "妙蛙種子 Bulbasaur", icon: "🍃", title: "自然學徒" },
+      { lv: 10, name: "妙蛙花 Venusaur", icon: "🍃", title: "大地單字巨匠" },
+      { lv: 11, name: "伊布 Eevee", icon: "🦊", title: "百變千幻星" },
+      { lv: 12, name: "雷伊布 Jolteon", icon: "⚡", title: "迅雷導師" },
+      { lv: 13, name: "水伊布 Vaporeon", icon: "💧", title: "淨水智者" },
+      { lv: 14, name: "火伊布 Flareon", icon: "🔥", title: "熱血單字戰士" },
+      { lv: 15, name: "惡伊布 Umbreon", icon: "🌙", title: "夜空守護者" },
+      { lv: 16, name: "太陽伊布 Espeon", icon: "☀️", title: "超能智星" },
+      { lv: 17, name: "冰伊布 Glaceon", icon: "❄️", title: "霜雪精英" },
+      { lv: 18, name: "葉伊布 Leafeon", icon: "🍃", title: "森林長老" },
+      { lv: 19, name: "仙子伊布 Sylveon", icon: "🎀", title: "璀璨光之星" },
+      { lv: 20, name: "耿鬼 Gengar", icon: "👻", title: "幻影單字奇才" },
+      { lv: 21, name: "快龍 Dragonite", icon: "🐉", title: "飛天單字傳奇" },
+      { lv: 22, name: "急凍鳥 Articuno", icon: "❄️", title: "傳奇冰霜聖尊" },
+      { lv: 23, name: "閃電鳥 Zapdos", icon: "⚡", title: "雷霆神獸" },
+      { lv: 24, name: "夢幻 Mew", icon: "🌌", title: "靈魂神獸大師" },
+      { lv: 25, name: "超夢 Mewtwo", icon: "👑", title: "終極創世主宰" }
+    ];
+
+    let activeDatasetKey = 'Rainbow Time 2020.4 Unit 1'; 
+    let dbMap = {}; 
+    let wordList = []; 
+    let currentDeck = [];
+    let historyDeckStack = []; 
+    let unfamiliarSet = new Set();
+    let masteredSet = new Set(); 
+    let isRandomOrder = false;
+
+    let flashcardRangeMode = 'all'; 
+    let quizRangeMode = 'unpassed';     
+    let quizQuestions = [];
+    let currentQuizIndex = 0;
+    let score = 0;
+    let quizHistory = [];
+    let isAnswerSubmitted = false;
+
+    /* Web Audio BGM 音樂系統 */
+    let bgmAudioCtx = null;
+    let isBGMPlaying = false;
+    let bgmTimer = null;
+
+    function toggleBGM() {
+      const btn = document.getElementById("bgm-toggle-btn");
+      if (!isBGMPlaying) {
+        startAdventureBGM();
+        isBGMPlaying = true;
+        if (btn) {
+          btn.textContent = "🔊 音樂：開";
+          btn.classList.remove("off");
+        }
+        showToast("🎵 冒險音樂已開啟！");
+      } else {
+        stopAdventureBGM();
+        isBGMPlaying = false;
+        if (btn) {
+          btn.textContent = "🔇 音樂：關";
+          btn.classList.add("off");
+        }
+        showToast("🔇 冒險音樂已關閉。");
+      }
+    }
+
+    function startAdventureBGM() {
+      try {
+        if (!bgmAudioCtx) {
+          bgmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (bgmAudioCtx.state === 'suspended') {
+          bgmAudioCtx.resume();
+        }
+
+        const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 293.66, 349.23, 440.00, 587.33, 440.00, 349.23];
+        let noteIdx = 0;
+
+        bgmTimer = setInterval(() => {
+          if (!isBGMPlaying || !bgmAudioCtx) return;
+          const osc = bgmAudioCtx.createOscillator();
+          const gain = bgmAudioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(notes[noteIdx], bgmAudioCtx.currentTime);
+          
+          gain.gain.setValueAtTime(0.03, bgmAudioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, bgmAudioCtx.currentTime + 0.22);
+          
+          osc.connect(gain);
+          gain.connect(bgmAudioCtx.destination);
+          
+          osc.start();
+          osc.stop(bgmAudioCtx.currentTime + 0.25);
+
+          noteIdx = (noteIdx + 1) % notes.length;
+        }, 280);
+      } catch (e) {}
+    }
+
+    function stopAdventureBGM() {
+      if (bgmTimer) {
+        clearInterval(bgmTimer);
+        bgmTimer = null;
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast-box");
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2800);
+    }
+
+    function formatPOSTag(pos) {
+      if (!pos || pos.trim() === "") return " ";
+      return `<span class="pos-tag">[${pos.trim()}]</span>`;
+    }
+
+    function playCorrectSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc1.type = 'sine'; osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(659.25, audioCtx.currentTime);
+        osc2.frequency.setValueAtTime(880.00, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+        osc1.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination);
+        osc1.start(audioCtx.currentTime); osc1.stop(audioCtx.currentTime + 0.1);
+        osc2.start(audioCtx.currentTime + 0.08); osc2.stop(audioCtx.currentTime + 0.35);
+      } catch (e) {}
+    }
+
+    function playWrongSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(130, audioCtx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.28);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.28);
+      } catch (e) {}
+    }
+
+    function playCelebrationSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99];
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.1 + 0.4);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + idx * 0.1); osc.stop(audioCtx.currentTime + idx * 0.1 + 0.4);
+        });
+      } catch (e) {}
+    }
+
+    function playPerfectSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime + idx * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.12 + 0.5);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + idx * 0.12); osc.stop(audioCtx.currentTime + idx * 0.12 + 0.5);
+        });
+      } catch (e) {}
+    }
+
+    // 全面優化救援初始化 DB（包含完整的 4 個 Rainbow Time Unit 題庫）
+    function initDB() {
+      const savedDB = localStorage.getItem("rt_2020_4_db_v14");
+      if (savedDB) {
+        try { dbMap = JSON.parse(savedDB); } catch (e) { dbMap = {}; }
+      }
+
+      if (!dbMap || Object.keys(dbMap).length === 0 || !dbMap["Rainbow Time 2020.4 Unit 1"]) {
+        dbMap = {
+          "Rainbow Time 2020.4 Unit 1": [...datasetRainbowUnit1],
+          "Rainbow Time 2020.4 Unit 2": [...datasetRainbowUnit2],
+          "Rainbow Time 2020.4 Unit 3": [...datasetRainbowUnit3],
+          "Rainbow Time 2020.4 Unit 4": [...datasetRainbowUnit4]
+        };
+      } else {
+        if (!dbMap["Rainbow Time 2020.4 Unit 2"]) dbMap["Rainbow Time 2020.4 Unit 2"] = [...datasetRainbowUnit2];
+        if (!dbMap["Rainbow Time 2020.4 Unit 3"]) dbMap["Rainbow Time 2020.4 Unit 3"] = [...datasetRainbowUnit3];
+        if (!dbMap["Rainbow Time 2020.4 Unit 4"]) dbMap["Rainbow Time 2020.4 Unit 4"] = [...datasetRainbowUnit4];
+      }
+
+      loadMasteredWords();
+      loadUnfamiliarSet();
+      saveDB();
+    }
+
+    function saveDB() {
+      localStorage.setItem("rt_2020_4_db_v14", JSON.stringify(dbMap));
+      updateDatasetDropdown();
+      changeActiveDataset(activeDatasetKey || 'Rainbow Time 2020.4 Unit 1');
+    }
+
+    function loadUnfamiliarSet() {
+      const saved = localStorage.getItem("unfamiliar_words_rt_v14");
+      if (saved) {
+        try {
+          const arr = JSON.parse(saved);
+          if (Array.isArray(arr)) {
+            const uniqueMap = new Map();
+            arr.forEach(item => {
+              if (item) {
+                if (typeof item === 'string') {
+                  uniqueMap.set(item.toLowerCase(), { en: item, pos: '', zh: '不熟單字' });
+                } else if (item.en) {
+                  uniqueMap.set(item.en.toLowerCase(), item);
+                }
+              }
+            });
+            unfamiliarSet = new Set(uniqueMap.values());
+          }
+        } catch (e) {
+          unfamiliarSet = new Set();
+        }
+      }
+      updateUnfamiliarUI();
+    }
+
+    function saveUnfamiliarSet() {
+      const uniqueItems = [];
+      const seen = new Set();
+      Array.from(unfamiliarSet).forEach(item => {
+        if (item && item.en && !seen.has(item.en.toLowerCase())) {
+          seen.add(item.en.toLowerCase());
+          uniqueItems.push(item);
+        }
+      });
+      localStorage.setItem("unfamiliar_words_rt_v14", JSON.stringify(uniqueItems));
+      updateUnfamiliarUI();
+    }
+
+    function loadMasteredWords() {
+      const saved = localStorage.getItem("mastered_words_rt_v14");
+      if (saved) {
+        try {
+          const arr = JSON.parse(saved);
+          if (Array.isArray(arr)) {
+            const cleanList = arr.map(item => typeof item === 'string' ? item.toLowerCase() : (item.en ? item.en.toLowerCase() : '')).filter(Boolean);
+            masteredSet = new Set(cleanList);
+          }
+        } catch (e) {
+          masteredSet = new Set();
+        }
+      } else {
+        masteredSet = new Set();
+      }
+      updateLevelUI();
+    }
+
+    function saveMasteredWords() {
+      localStorage.setItem("mastered_words_rt_v14", JSON.stringify(Array.from(masteredSet)));
+      updateLevelUI();
+    }
+
+    function updateLevelUI() {
+      const count = masteredSet.size;
+      let curLvIndex = Math.floor(count / 20); // 20 題升一級
+      if (curLvIndex > 24) curLvIndex = 24; 
+
+      const curLvData = pokeLevels[curLvIndex];
+      const curLv = curLvData.lv;
+
+      const avatarEl = document.getElementById("hero-avatar");
+      const titleEl = document.getElementById("hero-title");
+      const subEl = document.getElementById("hero-sub");
+      const fillEl = document.getElementById("hero-progress-fill");
+      const textEl = document.getElementById("hero-progress-text");
+      const totalBadge = document.getElementById("total-mastered-badge");
+      const topBadge = document.getElementById("top-level-badge");
+
+      if (avatarEl) avatarEl.textContent = curLvData.icon;
+      if (titleEl) titleEl.textContent = `Lv.${curLv} ${curLvData.name}`;
+      if (subEl) subEl.textContent = curLvData.title;
+      if (totalBadge) totalBadge.textContent = `總累積已掌握：${count} 題`;
+      if (topBadge) topBadge.textContent = `⚡ Lv.${curLv} ${curLvData.name}`;
+
+      if (curLv < 25) {
+        const currentLvProgress = count % 20;
+        const fillPercent = Math.round((currentLvProgress / 20) * 100);
+        if (fillEl) fillEl.style.width = `${fillPercent}%`;
+        if (textEl) textEl.textContent = `距離下一級：還需累積掌握 ${20 - currentLvProgress} 個新單字 (${fillPercent}%)`;
+      } else {
+        if (fillEl) fillEl.style.width = `100%`;
+        if (textEl) textEl.textContent = `🎉 已達最高等級 Lv.25！太強大了！`;
+      }
+
+      const gridEl = document.getElementById("pokedex-grid");
+      if (gridEl) {
+        gridEl.innerHTML = "";
+        pokeLevels.forEach(p => {
+          const isUnlocked = (count >= (p.lv - 1) * 20);
+          const isCurrent = (p.lv === curLv);
+          const card = document.createElement("div");
+          card.className = `poke-card ${isUnlocked ? 'unlocked' : ''} ${isCurrent ? 'current' : ''}`;
+          card.innerHTML = `
+            <div class="poke-icon">${isUnlocked ? p.icon : '🔒'}</div>
+            <div class="poke-lv">Lv.${p.lv}</div>
+            <div class="poke-name">${isUnlocked ? p.name : '未解鎖'}</div>
+          `;
+          gridEl.appendChild(card);
+        });
+      }
+    }
+
+    function updateDatasetDropdown() {
+      const selectEl = document.getElementById("dataset-select");
+      if (!selectEl) return;
+      selectEl.innerHTML = "";
+
+      let totalAllCount = 0;
+      Object.values(dbMap).forEach(arr => totalAllCount += arr.length);
+      const optAll = document.createElement("option");
+      optAll.value = "all";
+      optAll.textContent = `📚 全部總匯入單字 (共 ${totalAllCount} 題)`;
+      selectEl.appendChild(optAll);
+
+      Object.keys(dbMap).forEach(key => {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = `📖 ${key} (${dbMap[key].length} 題)`;
+        selectEl.appendChild(opt);
+      });
+
+      selectEl.value = activeDatasetKey;
+    }
+
+    function onBankSelectionChange(newKey) {
+      changeActiveDataset(newKey);
+      showToast(`已切換題庫至：${newKey === 'all' ? '全部總題庫' : newKey}`);
+    }
+
+    function changeActiveDataset(key) {
+      activeDatasetKey = key;
+      if (key === 'all') {
+        const combined = [];
+        const seenEn = new Set();
+        Object.values(dbMap).forEach(arr => {
+          arr.forEach(item => {
+            if (item && item.en && !seenEn.has(item.en.toLowerCase())) {
+              combined.push(item);
+              seenEn.add(item.en.toLowerCase());
+            }
+          });
+        });
+        wordList = combined;
+      } else if (dbMap[key]) {
+        wordList = [...dbMap[key]];
+      } else {
+        wordList = [];
+      }
+
+      unfamiliarSet.clear();
+      historyDeckStack = [];
+      updateDBBadge();
+      initFlashcards();
+    }
+
+    function updateDBBadge() {
+      const badgeEl = document.getElementById("db-count-badge");
+      if (!badgeEl) return;
+      const labelName = activeDatasetKey === 'all' ? '全部總題庫' : activeDatasetKey;
+      badgeEl.textContent = `📚 [${labelName}] 當前題庫數量：${wordList.length} 個單字/片語`;
+    }
+
+    async function processImageOCR(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const statusEl = document.getElementById("ocr-status");
+      statusEl.textContent = "⏳ 正在掃描圖片文字中...";
+
+      try {
+        const worker = await Tesseract.createWorker(['eng', 'chi_tra']);
+        const ret = await worker.recognize(file);
+        await worker.terminate();
+
+        const rawText = ret.data.text;
+        const lines = rawText.split('\n');
+        const formattedLines = [];
+
+        lines.forEach(line => {
+          let cleanLine = line.trim();
+          if (!cleanLine || cleanLine.includes("字彙") || cleanLine.includes("片語") || cleanLine === "英文" || cleanLine === "中文") return;
+
+          const enMatch = cleanLine.match(/[a-zA-Z\s\.\(\)]+/);
+          const zhMatch = cleanLine.match(/[\u4e00-\u9fa5；;（）()\s⋯\.]+/);
+
+          if (enMatch && zhMatch) {
+            let en = enMatch[0].trim();
+            let zh = zhMatch[0].trim();
+            if (en.length > 1 && zh.length > 0) {
+              formattedLines.push(`${en}, , ${zh}`);
+            } else {
+              formattedLines.push(cleanLine);
+            }
+          } else {
+            formattedLines.push(cleanLine);
+          }
+        });
+
+        const finalOutput = formattedLines.length > 0 ? formattedLines.join('\n') : rawText;
+        document.getElementById("import-text").value = finalOutput;
+        statusEl.textContent = "✅ 辨識完成！請檢查後點擊「確定追加到選取題庫」。";
+
+      } catch (err) {
+        statusEl.textContent = "❌ 圖片辨識失敗，請改用手動貼上文字。";
+      }
+    }
+
+    function importFromText() {
+      const rawText = document.getElementById("import-text").value.trim();
+      if (!rawText) {
+        showToast("⚠️ 請先貼上或掃描單字內容喔！");
+        return;
+      }
+
+      let targetKey = activeDatasetKey;
+      if (targetKey === 'all') {
+        const todayStr = new Date().toLocaleDateString('zh-TW');
+        targetKey = `匯入批次 (${todayStr})`;
+      }
+
+      if (!dbMap[targetKey]) dbMap[targetKey] = [];
+
+      const lines = rawText.split('\n');
+      const newItems = [];
+      const existingEnSet = new Set(dbMap[targetKey].map(w => w.en.toLowerCase()));
+      let duplicateCount = 0;
+
+      lines.forEach(line => {
+        if (!line.trim()) return;
+        const parts = line.split(/[,,\t\-–|]/).map(p => p.trim());
+        if (parts.length >= 2) {
+          let en = parts[0];
+          let pos = " ";
+          let zh = "";
+
+          if (parts.length === 2) {
+            zh = parts[1];
+          } else {
+            pos = parts[1] ? parts[1] : " ";
+            zh = parts.slice(2).join("；");
+          }
+
+          if (en && zh) {
+            if (!existingEnSet.has(en.toLowerCase())) {
+              newItems.push({ en, pos, zh, importDate: targetKey });
+              existingEnSet.add(en.toLowerCase());
+            } else {
+              duplicateCount++;
+            }
+          }
+        }
+      });
+
+      if (newItems.length === 0) {
+        showToast(duplicateCount > 0 ? "⚠️ 單字已存在於該題庫中！" : "⚠️ 無法解析格式！");
+        return;
+      }
+
+      dbMap[targetKey] = [...dbMap[targetKey], ...newItems];
+      activeDatasetKey = targetKey;
+      saveDB();
+
+      showToast(`🎉 成功追加 ${newItems.length} 個新項目到【${targetKey}】！`);
+      document.getElementById("import-text").value = "";
+      document.getElementById("ocr-status").textContent = "";
+      switchMode('flashcard');
+    }
+
+    function clearSelectedDataset() {
+      if (activeDatasetKey === 'all') {
+        if (window.confirm("⚠️ 確定要【清空全部題庫】嗎？所有題庫將被刪除！")) {
+          dbMap = {};
+          saveDB();
+          showToast("所有題庫已全部清空！");
+        }
+      } else {
+        if (window.confirm(`確定要刪除【${activeDatasetKey}】這個題庫嗎？`)) {
+          delete dbMap[activeDatasetKey];
+          activeDatasetKey = 'all';
+          saveDB();
+          showToast("該題庫已成功刪除！");
+        }
+      }
+    }
+
+    function resetSelectedDataset() {
+      if (window.confirm("確定要重置並載入 Rainbow Time 預設題庫嗎？")) {
+        initDB();
+        showToast("預設 Rainbow Time 題庫重置成功！");
+      }
+    }
+
+    function exportBackupJSON() {
+      const backupData = {
+        dbMap: dbMap,
+        masteredWords: Array.from(masteredSet),
+        unfamiliarWords: Array.from(unfamiliarSet),
+        activeDatasetKey: activeDatasetKey,
+        exportDate: new Date().toISOString(),
+        version: "14.0"
+      };
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `單字遊戲進度備份_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("💾 完整進度備份檔已下載成功！");
+    }
+
+    function importBackupJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          
+          if (data.dbMap && typeof data.dbMap === 'object') {
+            dbMap = data.dbMap;
+            localStorage.setItem("rt_2020_4_db_v14", JSON.stringify(dbMap));
+          }
+
+          if (data.masteredWords && Array.isArray(data.masteredWords)) {
+            const cleanMastered = data.masteredWords.map(item => {
+              return typeof item === 'string' ? item.toLowerCase() : (item && item.en ? item.en.toLowerCase() : '');
+            }).filter(Boolean);
+            masteredSet = new Set(cleanMastered);
+            saveMasteredWords();
+          }
+
+          if (data.unfamiliarWords && Array.isArray(data.unfamiliarWords)) {
+            const uniqueMap = new Map();
+            data.unfamiliarWords.forEach(item => {
+              if (item) {
+                if (typeof item === 'string') {
+                  uniqueMap.set(item.toLowerCase(), { en: item, pos: '', zh: '不熟單字' });
+                } else if (item.en) {
+                  uniqueMap.set(item.en.toLowerCase(), item);
+                }
+              }
+            });
+            unfamiliarSet = new Set(uniqueMap.values());
+            saveUnfamiliarSet();
+          }
+
+          if (data.activeDatasetKey) {
+            activeDatasetKey = data.activeDatasetKey;
+          }
+
+          updateDatasetDropdown();
+          changeActiveDataset(activeDatasetKey || 'all');
+          showToast("🎉 進度、題庫與【尚未通過/曾經出錯】紀錄已成功還原！");
+        } catch (err) {
+          showToast("❌ 備份檔格式不正確，讀取失敗。");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function speakText(text) {
+      if ('speechSynthesis' in window && text) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    function speakCurrentWord(e) {
+      if (e) e.stopPropagation();
+      if (currentDeck.length > 0) {
+        speakText(currentDeck[0].en);
+      }
+    }
+
+    function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+    function updateUnfamiliarUI() {
+      const countText = `📌 不熟/錯題：${unfamiliarSet.size} 個`;
+      document.getElementById("unfamiliar-count").textContent = countText;
+      document.getElementById("quiz-unfamiliar-count").textContent = countText;
+
+      const container = document.getElementById("unfamiliar-items-container");
+      if (!container) return;
+      container.innerHTML = "";
+
+      const list = Array.from(unfamiliarSet);
+      if (list.length === 0) {
+        container.innerHTML = `<div style="color: #94a3b8; text-align: center; font-size: 0.88rem; padding: 10px;">目前尚無標記不熟的單詞</div>`;
+        return;
+      }
+
+      list.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "unfamiliar-item";
+        div.innerHTML = `
+          <span class="en-word">${item.en} ${formatPOSTag(item.pos)}</span>
+          <span class="zh-word">${item.zh}</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function toggleOrderMode() {
+      isRandomOrder = !isRandomOrder;
+      const btn = document.getElementById("order-toggle-btn");
+      if (isRandomOrder) {
+        btn.textContent = "📋 依原順序";
+        btn.style.background = "#3b82f6";
+        btn.style.color = "white";
+      } else {
+        btn.textContent = "🔀 隨機排序";
+        btn.style.background = "#e2e8f0";
+        btn.style.color = "#334155";
+      }
+      initFlashcards();
+    }
+
+    function switchMode(mode) {
+      document.getElementById("tab-flashcard").classList.toggle("active", mode === 'flashcard');
+      document.getElementById("tab-quiz").classList.toggle("active", mode === 'quiz');
+      document.getElementById("tab-level").classList.toggle("active", mode === 'level');
+      document.getElementById("tab-import").classList.toggle("active", mode === 'import');
+      
+      document.getElementById("flashcard-section").classList.toggle("hidden", mode !== 'flashcard');
+      document.getElementById("quiz-section").classList.toggle("hidden", mode !== 'quiz');
+      document.getElementById("level-section").classList.toggle("hidden", mode !== 'level');
+      document.getElementById("import-section").classList.toggle("hidden", mode !== 'import');
+      
+      if(mode === 'flashcard') {
+        if(currentDeck.length === 0) initFlashcards();
+        updateUnfamiliarUI();
+      }
+      if(mode === 'quiz') {
+        initQuiz();
+      }
+      if(mode === 'level') {
+        updateLevelUI();
+      }
+      if(mode === 'import') {
+        updateDBBadge();
+      }
+    }
+
+    function setFlashcardRange(rangeMode) {
+      flashcardRangeMode = rangeMode;
+      document.getElementById("fc-range-all-btn").classList.toggle("active", rangeMode === 'all');
+      document.getElementById("fc-range-unpassed-btn").classList.toggle("active", rangeMode === 'unpassed');
+      document.getElementById("fc-range-wrong-btn").classList.toggle("active", rangeMode === 'wrong');
+      initFlashcards();
+    }
+
+    function setQuizRange(rangeMode) {
+      quizRangeMode = rangeMode;
+      const unpassedBtn = document.getElementById("range-unpassed-btn");
+      const wrongBtn = document.getElementById("range-wrong-btn");
+      const rand15Btn = document.getElementById("range-15-btn");
+      const allBtn = document.getElementById("range-all-btn");
+
+      if (unpassedBtn) unpassedBtn.classList.toggle("active", rangeMode === 'unpassed');
+      if (wrongBtn) wrongBtn.classList.toggle("active", rangeMode === 'wrong');
+      if (rand15Btn) rand15Btn.classList.toggle("active", rangeMode === 'rand15');
+      if (allBtn) allBtn.classList.toggle("active", rangeMode === 'all');
+
+      initQuiz();
+    }
+
+    function initQuiz() {
+      updateUnfamiliarUI();
+      updateLevelUI();
+
+      if (!wordList || wordList.length === 0) {
+        showToast("⚠️ 當前選取的題庫沒有單字，請切換題庫或追加單字！");
+        switchMode('import');
+        return;
+      }
+
+      document.getElementById("quiz-active-view").classList.remove("hidden");
+      document.getElementById("quiz-result-view").classList.add("hidden");
+
+      let sourceList = [];
+
+      if (quizRangeMode === 'all') {
+        sourceList = [...wordList];
+      } else if (quizRangeMode === 'rand15') {
+        sourceList = shuffle([...wordList]).slice(0, Math.min(15, wordList.length));
+      } else if (quizRangeMode === 'unpassed') {
+        sourceList = wordList.filter(item => item && item.en && !masteredSet.has(item.en.toLowerCase()));
+        if (sourceList.length === 0) {
+          showToast("🎉 當前題庫的所有單字您都已經通過測驗掌握囉！");
+          setQuizRange('rand15');
+          return;
+        } else {
+          sourceList = shuffle(sourceList);
+        }
+      } else if (quizRangeMode === 'wrong') {
+        const activeEnSet = new Set(wordList.map(a => a.en.toLowerCase()));
+        sourceList = Array.from(unfamiliarSet).filter(item => item && item.en && activeEnSet.has(item.en.toLowerCase()));
+
+        if (sourceList.length === 0) {
+          showToast(`提示：目前無不熟/曾經出錯單字，預設為您隨機抽取 ${Math.min(15, wordList.length)} 個單字進行測驗。`);
+          setQuizRange('rand15');
+          return;
+        } else {
+          sourceList = shuffle(sourceList);
+        }
+      }
+
+      quizQuestions = sourceList;
+      currentQuizIndex = 0;
+      score = 0;
+      quizHistory = [];
+      showQuestion();
+    }
+
+    function showQuestion() {
+      isAnswerSubmitted = false;
+      document.getElementById("next-q-btn").classList.add("hidden");
+      document.getElementById("quiz-feedback").textContent = "";
+      document.getElementById("quiz-feedback").className = "feedback";
+      
+      const inputEl = document.getElementById("quiz-input");
+      inputEl.value = "";
+      inputEl.disabled = false;
+      document.getElementById("submit-btn").disabled = false;
+
+      const q = quizQuestions[currentQuizIndex];
+      document.getElementById("quiz-status").textContent = `🎯 題目 ${currentQuizIndex + 1} / ${quizQuestions.length}`;
+      document.getElementById("quiz-meaning").innerHTML = `${q.zh} ${formatPOSTag(q.pos)}`;
+      
+      const blankHint = q.en ? q.en.replace(/[a-zA-Z]/g, "_ ") : "";
+      document.getElementById("quiz-blank").textContent = `💡 ${blankHint}`;
+
+      inputEl.focus();
+    }
+
+    function handleQuizSubmit(e) {
+      e.preventDefault();
+      if (!isAnswerSubmitted) {
+        submitAnswer();
+      } else {
+        nextQuestion();
+      }
+    }
+
+    function submitAnswer() {
+      const inputEl = document.getElementById("quiz-input");
+      const userAns = inputEl.value.trim().toLowerCase();
+      const q = quizQuestions[currentQuizIndex];
+      const correctAns = q.en.toLowerCase();
+      const feedbackEl = document.getElementById("quiz-feedback");
+
+      if (!userAns) return;
+
+      isAnswerSubmitted = true;
+      inputEl.disabled = true;
+      document.getElementById("submit-btn").disabled = true;
+
+      const isCorrect = (userAns === correctAns);
+      quizHistory.push({
+        word: q.en,
+        zh: q.zh,
+        userAns: userAns,
+        isCorrect: isCorrect
+      });
+
+      if (isCorrect) {
+        feedbackEl.textContent = "⭕ 太棒了！回答正確！";
+        feedbackEl.className = "feedback correct";
+        playCorrectSound();
+        score++;
+
+        // 計入單字掌握庫 (20 題不重複掌握升一級)
+        const oldSize = masteredSet.size;
+        masteredSet.add(q.en.toLowerCase());
+        if (masteredSet.size > oldSize) {
+          saveMasteredWords();
+          if (oldSize > 0 && Math.floor(masteredSet.size / 20) > Math.floor(oldSize / 20)) {
+            const newLv = Math.min(25, Math.floor(masteredSet.size / 20) + 1);
+            const pData = pokeLevels[newLv - 1];
+            showToast(`🎉 恭喜進化升級！解鎖 ${pData.icon} Lv.${newLv} ${pData.name}！`);
+          }
+        }
+      } else {
+        feedbackEl.textContent = `❌ 答錯了！正確答案是：${q.en}`;
+        feedbackEl.className = "feedback wrong";
+        playWrongSound();
+        unfamiliarSet.add(q);
+        saveUnfamiliarSet();
+      }
+
+      speakText(q.en);
+
+      if (currentQuizIndex < quizQuestions.length - 1) {
+        document.getElementById("next-q-btn").classList.remove("hidden");
+      } else {
+        setTimeout(showFinalScore, 1200);
+      }
+    }
+
+    function nextQuestion() {
+      if (currentQuizIndex < quizQuestions.length - 1) {
+        currentQuizIndex++;
+        showQuestion();
+      } else {
+        showFinalScore();
+      }
+    }
+
+    function showFinalScore() {
+      document.getElementById("quiz-active-view").classList.add("hidden");
+      document.getElementById("quiz-result-view").classList.remove("hidden");
+
+      const totalQ = quizQuestions.length;
+      document.getElementById("res-score").textContent = score;
+      document.getElementById("res-total").textContent = `/ ${totalQ} 題`;
+      
+      const accuracy = totalQ > 0 ? Math.round((score / totalQ) * 100) : 0;
+      document.getElementById("res-accuracy").textContent = `正確率：${accuracy}%`;
+
+      const trophyEl = document.getElementById("res-trophy");
+      const titleEl = document.getElementById("res-title");
+      const msgEl = document.getElementById("res-msg");
+
+      if (accuracy === 100) {
+        trophyEl.textContent = "🏆";
+        titleEl.textContent = "🎉 滿分成就達成！";
+        msgEl.textContent = "太神了！完美無瑕！全部答對 100 分，你是單字大師！🎉";
+        msgEl.style.borderColor = "#f59e0b";
+        msgEl.style.background = "#fef3c7";
+        msgEl.style.color = "#92400e";
+        
+        playPerfectSound();
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+        }
+      } else if (accuracy >= 81) {
+        trophyEl.textContent = "⭐";
+        titleEl.textContent = "🌟 表現非常優異！";
+        msgEl.textContent = "太優秀了！表現非常出色！只差一點點就滿分囉，繼續保持！";
+        msgEl.style.borderColor = "#bae6fd";
+        msgEl.style.background = "#f0f9ff";
+        msgEl.style.color = "#0369a1";
+
+        playCelebrationSound();
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+        }
+      } else {
+        trophyEl.textContent = "💪";
+        titleEl.textContent = "💪 再接再厲！";
+        msgEl.textContent = "加油！已經完成這輪測驗了，多複習錯題很快就能突破 80 分喔！";
+        msgEl.style.borderColor = "#fed7aa";
+        msgEl.style.background = "#fff7ed";
+        msgEl.style.color = "#c2410c";
+      }
+
+      const detailsContainer = document.getElementById("res-details");
+      detailsContainer.innerHTML = "";
+      
+      quizHistory.forEach((item, i) => {
+        const div = document.createElement("div");
+        div.className = "result-item";
+        div.innerHTML = `
+          <span>${i + 1}. ${item.zh} (${item.word})</span>
+          <span class="${item.isCorrect ? 'res-correct' : 'res-wrong'}">
+            ${item.isCorrect ? '⭕ 正確' : `❌ 寫成: ${item.userAns}`}
+          </span>
+        `;
+        detailsContainer.appendChild(div);
+      });
+    }
+
+    function exportQuizErrorsToWord() {
+      const quizWrongItems = quizHistory.filter(item => !item.isCorrect);
+
+      if (quizWrongItems.length === 0) {
+        showToast("🎉 太棒了！本次測驗沒有任何錯題需要匯出！");
+        return;
+      }
+
+      let tableRows = quizWrongItems.map((item, index) => {
+        const fullItem = wordList.find(w => w.en.toLowerCase() === item.word.toLowerCase()) || { pos: ' ' };
+        const displayPos = (fullItem.pos && fullItem.pos.trim()) ? fullItem.pos : " ";
+        return `
+          <tr>
+            <td style="border: 1px solid #cccccc; padding: 8px; text-align: center;">${index + 1}</td>
+            <td style="border: 1px solid #cccccc; padding: 8px; font-weight: bold; color: #1e3a8a;">${item.word}</td>
+            <td style="border: 1px solid #cccccc; padding: 8px; text-align: center; color: #64748b;">${displayPos}</td>
+            <td style="border: 1px solid #cccccc; padding: 8px;">${item.zh}</td>
+            <td style="border: 1px solid #cccccc; padding: 8px; color: #dc2626;">${item.userAns}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const content = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset="utf-8">
+          <title>拼字測驗錯題複習清單</title>
+          <style>
+            body { font-family: 'Microsoft JhengHei', Arial, sans-serif; }
+            h2 { color: #1e3a8a; text-align: center; margin-bottom: 5px; }
+            p { text-align: center; color: #666666; font-size: 0.9rem; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th { background-color: #ef4444; color: white; border: 1px solid #ef4444; padding: 10px; }
+          </style>
+        </head>
+        <body>
+          <h2>📘 拼字測驗錯題加強清單</h2>
+          <p>匯出時間：${new Date().toLocaleDateString('zh-TW')} | 本次測驗錯題數：${quizWrongItems.length} 個</p>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 8%;">編號</th>
+                <th style="width: 25%;">正確英文</th>
+                <th style="width: 12%;">詞性</th>
+                <th style="width: 30%;">中文釋義</th>
+                <th style="width: 25%;">當時拼錯輸入</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob(['\ufeff' + content], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `拼字測驗錯題集_${new Date().toISOString().slice(0, 10)}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function initFlashcards() {
+      historyDeckStack = [];
+      if (!wordList || wordList.length === 0) {
+        document.getElementById("fc-meaning").innerHTML = "目前題庫為空";
+        document.getElementById("fc-word").textContent = "請到「追加新題庫」分頁新增單字";
+        document.getElementById("fc-status").textContent = "剩餘單字：0";
+        document.getElementById("btn-prev-card").disabled = true;
+        return;
+      }
+
+      let filteredList = [];
+      if (flashcardRangeMode === 'all') {
+        filteredList = [...wordList];
+      } else if (flashcardRangeMode === 'unpassed') {
+        filteredList = wordList.filter(item => item && item.en && !masteredSet.has(item.en.toLowerCase()));
+        if (filteredList.length === 0) {
+          showToast("🎉 太棒了！當前題庫所有單字您都已經通過測驗掌握囉！");
+          filteredList = [...wordList];
+        }
+      } else if (flashcardRangeMode === 'wrong') {
+        const activeEnSet = new Set(wordList.map(a => a.en.toLowerCase()));
+        filteredList = Array.from(unfamiliarSet).filter(item => item && item.en && activeEnSet.has(item.en.toLowerCase()));
+        if (filteredList.length === 0) {
+          showToast("提示：目前尚無標記不熟或曾經出錯的單字！");
+          filteredList = [...wordList];
+        }
+      }
+
+      if (isRandomOrder) {
+        currentDeck = shuffle([...filteredList]);
+      } else {
+        currentDeck = [...filteredList];
+      }
+      showCard();
+    }
+
+    function showCard() {
+      updateUnfamiliarUI();
+      const prevBtn = document.getElementById("btn-prev-card");
+      if (prevBtn) prevBtn.disabled = (historyDeckStack.length === 0);
+
+      if (currentDeck.length === 0) {
+        document.getElementById("fc-meaning").innerHTML = "太棒了！";
+        document.getElementById("fc-word").textContent = "已完成當前範圍所有單字一輪複習！";
+        document.getElementById("fc-status").textContent = "剩餘單字：0";
+        return;
+      }
+      const cardEl = document.getElementById("flashcard");
+      cardEl.classList.remove("flipped");
+      
+      const current = currentDeck[0];
+      document.getElementById("fc-meaning").innerHTML = `${current.zh} ${formatPOSTag(current.pos)}`;
+      document.getElementById("fc-word").textContent = current.en;
+      document.getElementById("fc-status").textContent = `待複習單字：${currentDeck.length} 個 (${isRandomOrder ? '隨機模式' : '依原順序'})`;
+    }
+
+    function flipCard() {
+      const cardEl = document.getElementById("flashcard");
+      cardEl.classList.toggle("flipped");
+      
+      if (cardEl.classList.contains("flipped") && currentDeck.length > 0) {
+        speakText(currentDeck[0].en);
+      }
+    }
+
+    function markCard(remembered) {
+      if (currentDeck.length === 0) return;
+      const card = currentDeck.shift();
+      
+      historyDeckStack.push({ card, remembered });
+
+      if (!remembered) {
+        unfamiliarSet.add(card);
+        saveUnfamiliarSet();
+        currentDeck.push(card);
+      }
+      showCard();
+    }
+
+    function prevCard() {
+      if (historyDeckStack.length === 0) return;
+      
+      const lastState = historyDeckStack.pop();
+      const card = lastState.card;
+
+      if (!lastState.remembered) {
+        unfamiliarSet.delete(card);
+        saveUnfamiliarSet();
+        const indexInDeck = currentDeck.indexOf(card);
+        if (indexInDeck !== -1) {
+          currentDeck.splice(indexInDeck, 1);
+        }
+      }
+
+      currentDeck.unshift(card);
+      showCard();
+    }
+
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        const quizSection = document.getElementById("quiz-section");
+        const activeView = document.getElementById("quiz-active-view");
+        
+        if (quizSection && !quizSection.classList.contains("hidden") && 
+            activeView && !activeView.classList.contains("hidden") && isAnswerSubmitted) {
+          e.preventDefault();
+          nextQuestion();
+        }
+      }
+    });
+
+    window.addEventListener("DOMContentLoaded", function() {
+      initDB();
+    });
+  </script>
+</body>
+</html>
