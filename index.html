@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>單字記憶遊戲平台 - Rainbow Time 2020.4</title>
+  <title>單字記憶遊戲平台 - Rainbow Time</title>
   <!-- 引入開源 OCR 圖片辨識套件與五彩紙屑特效套件 -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -329,8 +329,8 @@
 
       <div class="unfamiliar-list-box">
         <div class="unfamiliar-list-title">
-          <span>📌 當前題庫不熟 / 錯題清單</span>
-          <span style="font-size: 0.78rem; font-weight: normal; color: #64748b;">⚡ 即時更新</span>
+          <span>📌 全局不熟 / 錯題清單</span>
+          <span style="font-size: 0.78rem; font-weight: normal; color: #64748b;">⚡ 持久化同步</span>
         </div>
         <div class="unfamiliar-items" id="unfamiliar-items-container">
           <div style="color: #94a3b8; text-align: center; font-size: 0.85rem; padding: 8px;">目前尚無標記不熟的單詞</div>
@@ -388,7 +388,7 @@
       </div>
     </div>
 
-    <!-- 3. 升級紀錄頁面 (每 20 題升一級) -->
+    <!-- 3. 升級紀錄頁面 (每 20 題不重複掌握升一級) -->
     <div id="level-section" class="card-box hidden" style="text-align: left;">
       <div class="level-hero">
         <div class="level-avatar" id="hero-avatar">🥚</div>
@@ -436,9 +436,9 @@
       <div style="margin-bottom: 14px;">
         <label style="font-weight: bold; color: #334155; font-size: 0.9rem;">方法二：文字預覽與追加</label>
         <textarea id="import-text" placeholder="辨識或貼上的內容會追加在現有題庫後方：
-case, n., 案件
-wonder, v., 想知道
-sandwich, n., 三明治"></textarea>
+turtle, n., 烏龜
+clean, v., 清理
+robot, n., 機器人"></textarea>
         <div class="import-guide">💡 格式為：`英文, 詞性, 中文` 或 `英文, 中文`。系統會自動跳過重複單字。</div>
         <button class="btn" style="background: #8b5cf6; color: white; width: 100%; margin-top: 8px;" onclick="importFromText()">➕ 確定追加到選取題庫</button>
       </div>
@@ -448,16 +448,74 @@ sandwich, n., 三明治"></textarea>
       <h4 style="color: #334155; margin-bottom: 8px;">⚙️ 題庫維護與重置</h4>
       <div style="display: flex; flex-direction: column; gap: 8px;">
         <button class="btn" style="background: #ef4444; color: white;" onclick="clearSelectedDataset()">🗑️ 清空目前選取題庫</button>
-        <button class="btn" style="background: #64748b; color: white;" onclick="resetSelectedDataset()">🔄 恢復 Rainbow Time 2020.4 預設題庫</button>
+        <button class="btn" style="background: #64748b; color: white;" onclick="resetSelectedDataset()">🔄 恢復 Rainbow Time 預設題庫</button>
       </div>
     </div>
 
   </div>
 
   <script>
-    const WORDS_PER_LEVEL = 20; // 20 題升一級
+    const WORDS_PER_LEVEL = 20; // 20 題不重複掌握升一級
 
-    // 題庫 1：Rainbow Time 2020.4 Unit 1 (19 題)
+    // 題庫 1：Rainbow Time 2020.3 Unit 1 (10 題)
+    const datasetRainbow2020_3_Unit1 = [
+      { en: "be ready", pos: "phr.", zh: "準備好做某件事", importDate: "Rainbow Time 2020.3 Unit 1" },
+      { en: "start", pos: "v.", zh: "開始", importDate: "Rainbow Time 2020.3 Unit 1" },
+      { en: "listen", pos: "v.", zh: "聽從", importDate: "Rainbow Time 2020.3 Unit 1" },
+      { en: "world", pos: "n.", zh: "世界", importDate: "Rainbow Time 2020.3 Unit 1" },
+      { en: "travel", pos: "v.", zh: "旅行", importDate: "Rainbow Time 2020.3 Unit 1" },
+      { en: "scared", pos: "adj.", zh: "害怕的", importDate: "Rainbow Time 2020.3 Unit 1" },
+      { en: "learn", pos: "v.", zh: "學習", importDate: "Rainbow Time 2020.3 Unit 1" },
+      { en: "language", pos: "n.", zh: "語言", importDate: "Rainbow Time 2020.3 Unit 1" },
+      { en: "country", pos: "n.", zh: "國家", importDate: "Rainbow Time 2020.3 Unit 1" },
+      { en: "confident", pos: "adj.", zh: "有自信的", importDate: "Rainbow Time 2020.3 Unit 1" }
+    ];
+
+    // 題庫 2：Rainbow Time 2020.3 Unit 2 (5 題)
+    const datasetRainbow2020_3_Unit2 = [
+      { en: "talented", pos: "adj.", zh: "有才華的", importDate: "Rainbow Time 2020.3 Unit 2" },
+      { en: "talkative", pos: "adj.", zh: "愛講話的", importDate: "Rainbow Time 2020.3 Unit 2" },
+      { en: "hardworking", pos: "adj.", zh: "用功的", importDate: "Rainbow Time 2020.3 Unit 2" },
+      { en: "healthy", pos: "adj.", zh: "健康的", importDate: "Rainbow Time 2020.3 Unit 2" },
+      { en: "thoughtful", pos: "adj.", zh: "體貼的", importDate: "Rainbow Time 2020.3 Unit 2" }
+    ];
+
+    // 題庫 3：Rainbow Time 2020.3 Unit 3 (14 題)
+    const datasetRainbow2020_3_Unit3 = [
+      { en: "turtle", pos: "n.", zh: "烏龜", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "rabbit", pos: "n.", zh: "兔子", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "clean", pos: "v.", zh: "清理", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "homework", pos: "n.", zh: "功課", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "change", pos: "v.", zh: "更換", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "please", pos: "adv.", zh: "拜託、請", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "tomorrow", pos: "n.", zh: "明天", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "hug", pos: "n.", zh: "擁抱", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "perfect", pos: "adj.", zh: "完美的", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "robot", pos: "n.", zh: "機器人", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "pet", pos: "n.", zh: "寵物", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "cage", pos: "n.", zh: "籠子", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "battery", pos: "n.", zh: "電池", importDate: "Rainbow Time 2020.3 Unit 3" },
+      { en: "surprise", pos: "n.", zh: "驚喜", importDate: "Rainbow Time 2020.3 Unit 3" }
+    ];
+
+    // 題庫 4：Rainbow Time 2020.3 Unit 4 (全新 13 題)
+    const datasetRainbow2020_3_Unit4 = [
+      { en: "can", pos: "n.", zh: "罐子", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "appear", pos: "v.", zh: "出現", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "cape", pos: "n.", zh: "披風", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "foamy", pos: "adj.", zh: "泡沫狀的", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "glob", pos: "n.", zh: "一團 (黏或稠的東西)", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "shaving cream", pos: "n.", zh: "刮鬍泡", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "fantastic", pos: "adj.", zh: "極好的", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "amazing", pos: "adj.", zh: "非常好的", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "bored", pos: "adj.", zh: "無聊的", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "pencil", pos: "n.", zh: "鉛筆", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "practice", pos: "v.", zh: "練習", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "desk", pos: "n.", zh: "書桌", importDate: "Rainbow Time 2020.3 Unit 4" },
+      { en: "finger", pos: "n.", zh: "手指頭", importDate: "Rainbow Time 2020.3 Unit 4" }
+    ];
+
+    // 題庫 5：Rainbow Time 2020.4 Unit 1 (19 題)
     const datasetRainbowUnit1 = [
       { en: "breakfast", pos: "n.", zh: "早餐", importDate: "Rainbow Time 2020.4 Unit 1" },
       { en: "juicy", pos: "adj.", zh: "多汁的", importDate: "Rainbow Time 2020.4 Unit 1" },
@@ -480,7 +538,7 @@ sandwich, n., 三明治"></textarea>
       { en: "terrible", pos: "adj.", zh: "糟糕的、可怕的", importDate: "Rainbow Time 2020.4 Unit 1" }
     ];
 
-    // 題庫 2：Rainbow Time 2020.4 Unit 2 (13 題)
+    // 題庫 6：Rainbow Time 2020.4 Unit 2 (13 題)
     const datasetRainbowUnit2 = [
       { en: "gross", pos: "adj.", zh: "噁心的", importDate: "Rainbow Time 2020.4 Unit 2" },
       { en: "flip", pos: "v.", zh: "翻面", importDate: "Rainbow Time 2020.4 Unit 2" },
@@ -497,7 +555,7 @@ sandwich, n., 三明治"></textarea>
       { en: "boring", pos: "adj.", zh: "無聊的", importDate: "Rainbow Time 2020.4 Unit 2" }
     ];
 
-    // 題庫 3：Rainbow Time 2020.4 Unit 3 (13 題)
+    // 題庫 7：Rainbow Time 2020.4 Unit 3 (13 題)
     const datasetRainbowUnit3 = [
       { en: "case", pos: "n.", zh: "案件", importDate: "Rainbow Time 2020.4 Unit 3" },
       { en: "detective", pos: "n.", zh: "偵探", importDate: "Rainbow Time 2020.4 Unit 3" },
@@ -514,7 +572,7 @@ sandwich, n., 三明治"></textarea>
       { en: "sandwich", pos: "n.", zh: "三明治", importDate: "Rainbow Time 2020.4 Unit 3" }
     ];
 
-    // 題庫 4：Rainbow Time 2020.4 Unit 4 (14 題)
+    // 題庫 8：Rainbow Time 2020.4 Unit 4 (14 題)
     const datasetRainbowUnit4 = [
       { en: "dumpling", pos: "n.", zh: "水餃", importDate: "Rainbow Time 2020.4 Unit 4" },
       { en: "night market", pos: "n.", zh: "夜市", importDate: "Rainbow Time 2020.4 Unit 4" },
@@ -561,7 +619,7 @@ sandwich, n., 三明治"></textarea>
       { lv: 25, name: "超夢 Mewtwo", icon: "👑", title: "終極創世主宰" }
     ];
 
-    let activeDatasetKey = 'Rainbow Time 2020.4 Unit 1'; 
+    let activeDatasetKey = 'Rainbow Time 2020.3 Unit 1'; 
     let dbMap = {}; 
     let wordList = []; 
     let currentDeck = [];
@@ -723,21 +781,30 @@ sandwich, n., 三明治"></textarea>
       } catch (e) {}
     }
 
-    // 全面優化救援初始化 DB（包含完整的 4 個 Rainbow Time Unit 題庫）
+    // 初始化 DB（升級版本至 v21，自動補齊 2020.3 Unit 1~4 與 2020.4 Unit 1~4 全套 8 個單元）
     function initDB() {
-      const savedDB = localStorage.getItem("rt_2020_4_db_v14");
+      const savedDB = localStorage.getItem("rt_2020_db_v21");
       if (savedDB) {
         try { dbMap = JSON.parse(savedDB); } catch (e) { dbMap = {}; }
       }
 
-      if (!dbMap || Object.keys(dbMap).length === 0 || !dbMap["Rainbow Time 2020.4 Unit 1"]) {
+      if (!dbMap || Object.keys(dbMap).length === 0 || !dbMap["Rainbow Time 2020.3 Unit 1"]) {
         dbMap = {
+          "Rainbow Time 2020.3 Unit 1": [...datasetRainbow2020_3_Unit1],
+          "Rainbow Time 2020.3 Unit 2": [...datasetRainbow2020_3_Unit2],
+          "Rainbow Time 2020.3 Unit 3": [...datasetRainbow2020_3_Unit3],
+          "Rainbow Time 2020.3 Unit 4": [...datasetRainbow2020_3_Unit4],
           "Rainbow Time 2020.4 Unit 1": [...datasetRainbowUnit1],
           "Rainbow Time 2020.4 Unit 2": [...datasetRainbowUnit2],
           "Rainbow Time 2020.4 Unit 3": [...datasetRainbowUnit3],
           "Rainbow Time 2020.4 Unit 4": [...datasetRainbowUnit4]
         };
       } else {
+        if (!dbMap["Rainbow Time 2020.3 Unit 1"]) dbMap["Rainbow Time 2020.3 Unit 1"] = [...datasetRainbow2020_3_Unit1];
+        if (!dbMap["Rainbow Time 2020.3 Unit 2"]) dbMap["Rainbow Time 2020.3 Unit 2"] = [...datasetRainbow2020_3_Unit2];
+        if (!dbMap["Rainbow Time 2020.3 Unit 3"]) dbMap["Rainbow Time 2020.3 Unit 3"] = [...datasetRainbow2020_3_Unit3];
+        if (!dbMap["Rainbow Time 2020.3 Unit 4"]) dbMap["Rainbow Time 2020.3 Unit 4"] = [...datasetRainbow2020_3_Unit4];
+        if (!dbMap["Rainbow Time 2020.4 Unit 1"]) dbMap["Rainbow Time 2020.4 Unit 1"] = [...datasetRainbowUnit1];
         if (!dbMap["Rainbow Time 2020.4 Unit 2"]) dbMap["Rainbow Time 2020.4 Unit 2"] = [...datasetRainbowUnit2];
         if (!dbMap["Rainbow Time 2020.4 Unit 3"]) dbMap["Rainbow Time 2020.4 Unit 3"] = [...datasetRainbowUnit3];
         if (!dbMap["Rainbow Time 2020.4 Unit 4"]) dbMap["Rainbow Time 2020.4 Unit 4"] = [...datasetRainbowUnit4];
@@ -749,13 +816,13 @@ sandwich, n., 三明治"></textarea>
     }
 
     function saveDB() {
-      localStorage.setItem("rt_2020_4_db_v14", JSON.stringify(dbMap));
+      localStorage.setItem("rt_2020_db_v21", JSON.stringify(dbMap));
       updateDatasetDropdown();
-      changeActiveDataset(activeDatasetKey || 'Rainbow Time 2020.4 Unit 1');
+      changeActiveDataset(activeDatasetKey || 'Rainbow Time 2020.3 Unit 1');
     }
 
     function loadUnfamiliarSet() {
-      const saved = localStorage.getItem("unfamiliar_words_rt_v14");
+      const saved = localStorage.getItem("unfamiliar_words_rt_v21");
       if (saved) {
         try {
           const arr = JSON.parse(saved);
@@ -764,7 +831,7 @@ sandwich, n., 三明治"></textarea>
             arr.forEach(item => {
               if (item) {
                 if (typeof item === 'string') {
-                  uniqueMap.set(item.toLowerCase(), { en: item, pos: '', zh: '不熟單字' });
+                  uniqueMap.set(item.toLowerCase(), { en: item, pos: '', zh: '歷史錯題' });
                 } else if (item.en) {
                   uniqueMap.set(item.en.toLowerCase(), item);
                 }
@@ -788,12 +855,12 @@ sandwich, n., 三明治"></textarea>
           uniqueItems.push(item);
         }
       });
-      localStorage.setItem("unfamiliar_words_rt_v14", JSON.stringify(uniqueItems));
+      localStorage.setItem("unfamiliar_words_rt_v21", JSON.stringify(uniqueItems));
       updateUnfamiliarUI();
     }
 
     function loadMasteredWords() {
-      const saved = localStorage.getItem("mastered_words_rt_v14");
+      const saved = localStorage.getItem("mastered_words_rt_v21");
       if (saved) {
         try {
           const arr = JSON.parse(saved);
@@ -811,13 +878,13 @@ sandwich, n., 三明治"></textarea>
     }
 
     function saveMasteredWords() {
-      localStorage.setItem("mastered_words_rt_v14", JSON.stringify(Array.from(masteredSet)));
+      localStorage.setItem("mastered_words_rt_v21", JSON.stringify(Array.from(masteredSet)));
       updateLevelUI();
     }
 
     function updateLevelUI() {
       const count = masteredSet.size;
-      let curLvIndex = Math.floor(count / 20); // 20 題升一級
+      let curLvIndex = Math.floor(count / WORDS_PER_LEVEL); // 20 題不重複掌握升一級
       if (curLvIndex > 24) curLvIndex = 24; 
 
       const curLvData = pokeLevels[curLvIndex];
@@ -838,10 +905,10 @@ sandwich, n., 三明治"></textarea>
       if (topBadge) topBadge.textContent = `⚡ Lv.${curLv} ${curLvData.name}`;
 
       if (curLv < 25) {
-        const currentLvProgress = count % 20;
-        const fillPercent = Math.round((currentLvProgress / 20) * 100);
+        const currentLvProgress = count % WORDS_PER_LEVEL;
+        const fillPercent = Math.round((currentLvProgress / WORDS_PER_LEVEL) * 100);
         if (fillEl) fillEl.style.width = `${fillPercent}%`;
-        if (textEl) textEl.textContent = `距離下一級：還需累積掌握 ${20 - currentLvProgress} 個新單字 (${fillPercent}%)`;
+        if (textEl) textEl.textContent = `距離下一級：還需累積掌握 ${WORDS_PER_LEVEL - currentLvProgress} 個新單字 (${fillPercent}%)`;
       } else {
         if (fillEl) fillEl.style.width = `100%`;
         if (textEl) textEl.textContent = `🎉 已達最高等級 Lv.25！太強大了！`;
@@ -851,7 +918,7 @@ sandwich, n., 三明治"></textarea>
       if (gridEl) {
         gridEl.innerHTML = "";
         pokeLevels.forEach(p => {
-          const isUnlocked = (count >= (p.lv - 1) * 20);
+          const isUnlocked = (count >= (p.lv - 1) * WORDS_PER_LEVEL);
           const isCurrent = (p.lv === curLv);
           const card = document.createElement("div");
           card.className = `poke-card ${isUnlocked ? 'unlocked' : ''} ${isCurrent ? 'current' : ''}`;
@@ -912,7 +979,6 @@ sandwich, n., 三明治"></textarea>
         wordList = [];
       }
 
-      unfamiliarSet.clear();
       historyDeckStack = [];
       updateDBBadge();
       initFlashcards();
@@ -1062,7 +1128,7 @@ sandwich, n., 三明治"></textarea>
         unfamiliarWords: Array.from(unfamiliarSet),
         activeDatasetKey: activeDatasetKey,
         exportDate: new Date().toISOString(),
-        version: "14.0"
+        version: "21.0"
       };
       const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -1087,7 +1153,7 @@ sandwich, n., 三明治"></textarea>
           
           if (data.dbMap && typeof data.dbMap === 'object') {
             dbMap = data.dbMap;
-            localStorage.setItem("rt_2020_4_db_v14", JSON.stringify(dbMap));
+            localStorage.setItem("rt_2020_db_v21", JSON.stringify(dbMap));
           }
 
           if (data.masteredWords && Array.isArray(data.masteredWords)) {
@@ -1103,7 +1169,7 @@ sandwich, n., 三明治"></textarea>
             data.unfamiliarWords.forEach(item => {
               if (item) {
                 if (typeof item === 'string') {
-                  uniqueMap.set(item.toLowerCase(), { en: item, pos: '', zh: '不熟單字' });
+                  uniqueMap.set(item.toLowerCase(), { en: item, pos: '', zh: '歷史錯題' });
                 } else if (item.en) {
                   uniqueMap.set(item.en.toLowerCase(), item);
                 }
@@ -1119,7 +1185,7 @@ sandwich, n., 三明治"></textarea>
 
           updateDatasetDropdown();
           changeActiveDataset(activeDatasetKey || 'all');
-          showToast("🎉 進度、題庫與【尚未通過/曾經出錯】紀錄已成功還原！");
+          showToast("🎉 進度、題庫與【未通過/曾經出錯】錯題紀錄已成功還原！");
         } catch (err) {
           showToast("❌ 備份檔格式不正確，讀取失敗。");
         }
@@ -1346,8 +1412,8 @@ sandwich, n., 三明治"></textarea>
         masteredSet.add(q.en.toLowerCase());
         if (masteredSet.size > oldSize) {
           saveMasteredWords();
-          if (oldSize > 0 && Math.floor(masteredSet.size / 20) > Math.floor(oldSize / 20)) {
-            const newLv = Math.min(25, Math.floor(masteredSet.size / 20) + 1);
+          if (oldSize > 0 && Math.floor(masteredSet.size / WORDS_PER_LEVEL) > Math.floor(oldSize / WORDS_PER_LEVEL)) {
+            const newLv = Math.min(25, Math.floor(masteredSet.size / WORDS_PER_LEVEL) + 1);
             const pData = pokeLevels[newLv - 1];
             showToast(`🎉 恭喜進化升級！解鎖 ${pData.icon} Lv.${newLv} ${pData.name}！`);
           }
